@@ -9,33 +9,26 @@ import numpy as np
 st.set_page_config(layout="wide")
 
 # Título de la aplicación
-st.title("Análisis de Componentes Principales (PCA) con Streamlit y Plotly")
+st.title("Análisis de Componentes Principales (PCA)")
 
 # Cargar el dataset externo
 st.header("1. Cargar dataset")
-st.write("Usamos el dataset 'Iris'.")
+file_path = "C:\\Users\\Marco\\Downloads\\IEA_Global_EV_Data_Sin_Outliers.csv"
+df = pd.read_csv(file_path)
 
-
-# Dataset de ejemplo (Iris)
-##st.cache_data
-def load_data():
-    url = "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
-    columns = ['Longitud de sépalo', 'Ancho de sépalo', 'Longitud de pétalo', 'Ancho de pétalo', 'Species']
-    df = pd.read_csv(url, header=None, names=columns)
-    return df
-
-df = load_data()
+# Mostrar el dataset original
 st.write("### Dataset original:", df.head())
 
 # Convertir las columnas seleccionadas en una lista explícitamente
-selected_columns = st.multiselect(
-    "Selecciona las variables para el PCA", 
-    list(df.columns[:-1]),  # Convertimos a lista
-    default=list(df.columns[:-1])  # Convertimos a lista también aquí
-)
+selected_columns = [
+    'Log_price', 'Log_range_km', 'Log_charging_time', 
+    'Log_sales_volume', 'Log_co2_saved', 'Log_battery_capacity', 
+    'Log_energy_efficiency', 'Log_weight_kg', 
+    'Log_number_of_seats', 'Log_motor_power', 'Log_distance_traveled'
+]
 
 # Estandarización de los datos
-st.header("3. Estandarización de los datos")
+st.header("2. Estandarización de los datos")
 st.write("El PCA requiere que las variables estén estandarizadas para que todas tengan la misma importancia.")
 
 # Escalar las variables seleccionadas
@@ -46,13 +39,13 @@ st.write("### Datos escalados (primeras 5 filas):")
 st.dataframe(pd.DataFrame(scaled_data, columns=selected_columns).head())
 
 # Calcular la matriz de covarianza
-st.header("4. Matriz de Covarianza")
+st.header("3. Matriz de Covarianza")
 cov_matrix = np.cov(scaled_data, rowvar=False)
 st.write("### Matriz de Covarianza:")
 st.dataframe(pd.DataFrame(cov_matrix, columns=selected_columns, index=selected_columns))
 
 # Aplicar PCA
-st.header("5. Aplicación de PCA")
+st.header("4. Aplicación de PCA")
 st.write("Selecciona el número de componentes principales que deseas obtener.")
 
 n_components = st.slider("Número de componentes", min_value=1, max_value=len(selected_columns), value=2)
@@ -61,7 +54,7 @@ pca = PCA(n_components=n_components)
 pca_result = pca.fit_transform(scaled_data)
 
 # Obtener los vectores propios
-st.header("6. Vectores propios (Eigenvectors)")
+st.header("5. Vectores propios (Eigenvectors)")
 st.write("Cada fila representa un vector propio, y cada columna es una de las variables originales seleccionadas.")
 
 eigenvectors = pca.components_
@@ -71,8 +64,6 @@ st.write("Los vectores propios nos dicen hacia dónde apuntan los componentes pr
 
 # Crear un DataFrame con los resultados del PCA
 pca_df = pd.DataFrame(pca_result, columns=[f'PC{i+1}' for i in range(n_components)])
-pca_df['Species'] = df['Species']
-
 st.write(f"### Resultado del PCA con {n_components} componentes principales:")
 st.dataframe(pca_df.head())
 
@@ -86,27 +77,28 @@ total_variance = sum(explained_variance)
 st.write(f"### Varianza total explicada: {total_variance:.2f}")
 
 # Visualización de los Componentes Principales
-st.header("7. Visualización de los Componentes Principales")
+st.header("6. Visualización de los Componentes Principales")
 
-if n_components<3:
+if n_components < 3:
     st.write("Gráfico interactivo de los dos primeros componentes principales.")
     fig = px.scatter(
-        pca_df, x='PC1', y='PC2', color='Species', 
+        pca_df, x='PC1', y='PC2', 
         title="Gráfico de los dos primeros Componentes Principales",
         labels={'PC1': f'PC1 ({explained_variance[0]:.2f} varianza explicada)',
-                'PC2': f'PC2 ({explained_variance[1]:.2f} varianza explicada)'}
+                'PC2': f'PC2 ({explained_variance[1]:.2f} varianza explicada)'},
+        hover_name=df['region']  # Si deseas mostrar la región al pasar el mouse
     )
     st.plotly_chart(fig)
-
 
 # Gráfico 3D si se seleccionan 3 componentes
 if n_components >= 3:
     st.write("Gráfico interactivo 3D de los tres primeros componentes principales.")
     fig_3d = px.scatter_3d(
-        pca_df, x='PC1', y='PC2', z='PC3', color='Species',
+        pca_df, x='PC1', y='PC2', z='PC3', 
         title="Gráfico 3D de los tres primeros Componentes Principales",
         labels={'PC1': f'PC1 ({explained_variance[0]:.2f} varianza explicada)',
                 'PC2': f'PC2 ({explained_variance[1]:.2f} varianza explicada)',
-                'PC3': f'PC3 ({explained_variance[2]:.2f} varianza explicada)'}
+                'PC3': f'PC3 ({explained_variance[2]:.2f} varianza explicada)'},
+        hover_name=df['region']  # Si deseas mostrar la región al pasar el mouse
     )
     st.plotly_chart(fig_3d)
